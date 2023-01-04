@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MediaServer Integration test</title>
+</head>
+<body>
+<!--https://github.com/sendbird/sendbird-live-sdk-javascript/blob/main/sendbirdLive.min.js-->
+<script src="sendbirdLive.min.js"></script>
+<script>
+    var globalLiveParticipant = null;
+    var globalUserIdParticipant = null;
+    var globalLiveEventParticipant = null;
+
+    function addListeners(liveEvent) {
+
+        liveEvent.on('hostMutedAudio', (...args) => {
+            console.log('hostMutedAudio', ...args);
+        })
+        liveEvent.on('hostUnmutedAudio', (...args) => {
+            console.log('hostUnmutedAudio', ...args);
+        })
+        liveEvent.on('hostStartedVideo', (...args) => {
+            console.log('hostStartedVideo', ...args);
+        })
+        liveEvent.on('hostStoppedVideo', (...args) => {
+            console.log('hostStoppedVideo', ...args);
+        })
+        liveEvent.on('liveEventReady', (...args) => {
+            console.log('liveEventReady', ...args);
+        })
+        liveEvent.on('liveEventStarted', (...args) => {
+            console.log('liveEventStarted', ...args);
+        })
+        liveEvent.on('liveEventEnded', (...args) => {
+            console.log('liveEventEnded', ...args);
+        })
+        liveEvent.on('hostEntered', (...args) => {
+            console.log('hostEntered', ...args);
+        })
+        liveEvent.on('hostExited', (...args) => {
+            console.log('hostExited', ...args);
+        })
+        liveEvent.on('hostConnected', (...args) => {
+            console.log('hostConnected', ...args);
+        })
+        liveEvent.on('hostDisconnected', (...args) => {
+            console.log('hostDisconnected', ...args);
+        })
+        liveEvent.on('participantEntered', (...args) => {
+            console.log('participantEntered', ...args);
+        })
+        liveEvent.on('disconnected', (...args) => {
+            console.log('disconnected', ...args);
+        })
+    }
+
+    function val(id) {
+        return document.getElementById(id).value;
+    }
+
+    async function login(appId, userId) {
+        globalLiveParticipant = sendbirdLive.SendbirdLive;
+        globalLiveParticipant.init({appId});
+
+        await globalLiveParticipant.authenticate(userId);
+        globalUserIdParticipant = userId;
+        console.log("Logged in as:", userId)
+    }
+
+    async function getLiveEvent(liveEventId) {
+        console.log("Clicked get live event:", liveEventId)
+        const liveEvent = await globalLiveParticipant.getLiveEvent(liveEventId);
+        console.log("Live Event Object:", liveEvent);
+        globalLiveEventParticipant = liveEvent;
+    }
+
+    async function enter() {
+        try {
+            await globalLiveEventParticipant.enter();
+            console.log("You entered the event")
+            addListeners(globalLiveEventParticipant);
+        } catch (e) {
+            console.error(e)
+        }
+    }
+
+    async function exit() {
+        try {
+            await globalLiveEventParticipant.exit();
+            console.log("You exited the event")
+        } catch (e) {
+            console.error(e)
+        }
+    }
+
+    function setLiveEventViewParticipant() {
+        //There can be multiple hosts.
+        const hostId = globalLiveEventParticipant.host.hostId;
+        globalLiveEventParticipant.setVideoViewForLiveEvent(document.getElementById('videoViewParticipant'), hostId);
+    }
+
+</script>
+<h1>I'm a participant</h1>
+<hr/>
+<!--Step 1-->
+<h5>Step 1:</h5>
+<input id="appId" placeholder="Sendbird App id...">
+<input id="userId" placeholder="User id...">
+<button onclick="login(val('appId'), val('userId'))">Login</button>
+<p>Open the browser console.</p>
+
+<!--Step 2-->
+<h5>Step 2: </h5>
+<input placeholder="live event id" id="liveEventIdParticipant">
+<button onclick="getLiveEvent(val('liveEventIdParticipant'))">Get one live event</button> into memory
+
+<!--Step 3-->
+<h5>Step 3: </h5>
+<button onclick="enter()">Enter as a Participant</button>
+<p>Note: You can't enter until the event is set to 'ready' by the host. Event listeners don't work until you have entered, so add the listeners after entering.</p>
+
+
+<!--Step 4-->
+<h5>Step 4:</h5>
+<button onclick="setLiveEventViewParticipant()">Set target video element</button>
+
+<!--Step 5-->
+<h5>Step 5: View video here </h5>
+<video style="max-width: 300px; background-color: black" id="videoViewParticipant" autoplay="true"></video>
+
+<!--Step 5-->
+<h5>Step 6: </h5>
+<button onclick="exit()">Exit as a participant</button>
+</body>
+</html>

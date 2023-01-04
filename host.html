@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MediaServer Integration test</title>
+</head>
+<body>
+<!--https://github.com/sendbird/sendbird-live-sdk-javascript/blob/main/sendbirdLive.min.js-->
+<script src="sendbirdLive.min.js"></script>
+<script>
+    var globalLive = null;
+    var globalUserId = null;
+    var globalLiveEvent = null;
+
+    function addListeners(liveEvent) {
+        liveEvent.on('hostMutedAudio', (...args) => {
+            console.log('hostMutedAudio', ...args);
+        })
+        liveEvent.on('hostUnmutedAudio', (...args) => {
+            console.log('hostUnmutedAudio', ...args);
+        })
+        liveEvent.on('hostStartedVideo', (...args) => {
+            console.log('hostStartedVideo', ...args);
+        })
+        liveEvent.on('hostStoppedVideo', (...args) => {
+            console.log('hostStoppedVideo', ...args);
+        })
+        liveEvent.on('liveEventReady', (...args) => {
+            console.log('liveEventReady', ...args);
+        })
+        liveEvent.on('liveEventStarted', (...args) => {
+            console.log('liveEventStarted', ...args);
+        })
+        liveEvent.on('liveEventEnded', (...args) => {
+            console.log('liveEventEnded', ...args);
+        })
+        liveEvent.on('hostEntered', (...args) => {
+            console.log('hostEntered', ...args);
+        })
+        liveEvent.on('hostExited', (...args) => {
+            console.log('hostExited', ...args);
+        })
+        liveEvent.on('hostConnected', (...args) => {
+            console.log('hostConnected', ...args);
+        })
+        liveEvent.on('hostDisconnected', (...args) => {
+            console.log('hostDisconnected', ...args);
+        })
+        liveEvent.on('participantEntered', (...args) => {
+            console.log('participantEntered', ...args);
+        })
+        liveEvent.on('disconnected', (...args) => {
+            console.log('disconnected', ...args);
+        })
+    }
+
+    function val(id) {
+        return document.getElementById(id).value;
+    }
+
+
+    async function login(appId, userId) {
+        console.log("Clicked login")
+        globalLive = sendbirdLive.SendbirdLive;
+        globalLive.init({appId});
+        await globalLive.authenticate(userId);
+        globalUserId = userId;
+        console.log("Logged in as:", userId)
+    }
+
+    async function createLiveEvent() {
+        const liveEvent = await globalLive.createLiveEvent({userIdsForHost: [globalUserId]});
+        document.getElementById('liveEventId').value = liveEvent.liveEventId;
+        console.log("Live Event Created. Live eventId = ", liveEvent.liveEventId)
+    }
+
+    async function getLiveEvent(liveEventId) {
+        const liveEvent = await globalLive.getLiveEvent(liveEventId);
+        console.log("Live Event Object:", liveEvent);
+        globalLiveEvent = liveEvent;
+    }
+
+    async function createAndRunLiveEventQuery() {
+        console.log("Clicked List LiveEvent")
+        const query = globalLive.createLiveEventListQuery({})
+        const events = await query.next();
+        console.dir(events)
+    }
+
+    async function hostEnter(mediaOption) {
+        await globalLiveEvent.enterAsHost(mediaOption);
+        console.log("Adding listeners")
+        addListeners(globalLiveEvent)
+    }
+
+    async function hostExit() {
+        await globalLiveEvent.exitAsHost();
+    }
+
+    async function setReady() {
+        await globalLiveEvent.setEventReady();
+    }
+
+    async function start(mediaOption) {
+        await globalLiveEvent.startEvent(mediaOption);
+    }
+
+    async function end() {
+        await globalLiveEvent.endEvent();
+    }
+
+    async function startStream(mediaOption) {
+        await globalLiveEvent.startStreaming(mediaOption);
+    }
+
+    async function endStream() {
+        await globalLiveEvent.endStreaming();
+    }
+
+    async function mute() {
+        await globalLiveEvent.muteAudioInput();
+    }
+
+    async function unmute() {
+        await globalLiveEvent.unmuteAudioInput();
+    }
+
+    async function stopVideo() {
+        await globalLiveEvent.stopVideo();
+    }
+
+    async function startVideo() {
+        await globalLiveEvent.startVideo();
+    }
+
+    function setLiveEventViewHost() {
+        const hostId = globalLiveEvent.host.hostId;
+        globalLiveEvent.setVideoViewForLiveEvent(document.getElementById('videoView'), hostId);
+    }
+
+</script>
+
+<h1>I'm a host</h1>
+<hr/>
+<!--Step 1-->
+<h5>Step 1:</h5>
+<input id="appId" placeholder="Sendbird App id...">
+<input id="userId" placeholder="User id...">
+<button onclick="login(val('appId'), val('userId'))">Login</button>
+<p>Open the browser console.</p>
+
+
+<!--Step 2-->
+<h5>Step 2:</h5>
+<button onclick="createAndRunLiveEventQuery()">List LiveEvents</button>
+or
+<button onclick="createLiveEvent()">Create LiveEvent</button>
+Note: Live events can be used only once
+
+
+<!--Step 3-->
+<h5>Step 3:</h5>
+<input placeholder="live event id" id="liveEventId">
+<button onclick="getLiveEvent(val('liveEventId'))">Get one live event</button>
+into memory.
+
+
+<!--Step 4-->
+<h5>Step 4:</h5>
+<button onclick="hostEnter({ turnAudioOn: false, turnVideoOn: true })">Enter as a host with media options</button>
+, and add event listeners. Also,
+<button onclick="hostExit()">exit when done</button>
+
+
+<!--Step 5-->
+<h5>Step 5: </h5>
+Open the event for participants to join by changing its status to
+<button onclick="setReady()">ready</button>
+
+
+<!--Step 6-->
+<h5>Step 6: </h5>
+Signal via websocket the event status changed to started, and start the media streaming with options -
+<button onclick="start({ turnAudioOn: false, turnVideoOn: true })">start</button>
+.
+When ready click to
+<button onclick="end()">end</button>
+the event
+<br/><br/>
+Alternatively, just
+<button onclick="startStream({ turnAudioOn: false, turnVideoOn: true })">start the stream</button>
+with no signal. When ready click to
+<button onclick="endStream()">end the stream</button>
+.
+
+<!--Step 7-->
+<h5>Step 7: </h5>
+<button onclick="setLiveEventViewHost()">Set the live event view</button>
+to display the video locally
+
+
+<!--Step 8-->
+<h5>Step 8: </h5>
+View and control your live stream
+<p></p>
+<video style="max-width: 200px; background-color: black;" id="videoView" autoplay="true"></video>
+<p></p>
+<button onclick="mute()">Mute</button>
+<button onclick="unmute()">Unmute</button>
+<button onclick="stopVideo()">StopVideo</button>
+<button onclick="startVideo()">StartVideo</button>
+</body>
+</html>
